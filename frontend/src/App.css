@@ -105,3 +105,30 @@ button.sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 .editable-title { cursor: pointer; }
 .edit-hint { font-size: 0.7rem; opacity: 0.5; }
 .inline-form { display: flex; gap: 0.5rem; align-items: center; }
+
+/* Store badge */
+.store-badge { font-size: 0.8rem; background: #e7f1ff; color: var(--primary); padding: 2px 8px; border-radius: 10px; }
+
+/* Section cards (store config page) */
+.section-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.section-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--bg); border-bottom: 1px solid var(--border); }
+.section-name { flex: 1; font-weight: 600; }
+.section-actions { display: flex; gap: 0.35rem; }
+.keyword-area { padding: 0.6rem 0.75rem; }
+.keyword-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; min-height: 28px; align-items: center; }
+.keyword-chip { display: inline-flex; align-items: center; gap: 4px; background: #e7f1ff; color: var(--primary); border-radius: 12px; padding: 2px 8px 2px 10px; font-size: 0.8rem; }
+.chip-remove { background: transparent; color: var(--primary); padding: 0 2px; font-size: 0.75rem; border: none; cursor: pointer; opacity: 0.6; }
+.chip-remove:hover { opacity: 1; background: transparent; }
+.kw-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+.kw-form { margin-bottom: 0; }
+
+/* Section select in item row */
+.section-select { font-size: 0.8rem; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--muted); max-width: 130px; }
+.section-select:focus { outline: none; border-color: var(--primary); color: var(--text); }
+
+/* Override badge */
+.override-badge { font-size: 0.75rem; opacity: 0.6; }
+
+/* Unsorted section label */
+.unsorted-label { color: #adb5bd; }

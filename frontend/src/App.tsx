@@ -6,6 +6,8 @@ import TemplatesPage from "./pages/TemplatesPage";
 import TemplatePage from "./pages/TemplatePage";
 import SessionsPage from "./pages/SessionsPage";
 import SessionPage from "./pages/SessionPage";
+import StoresPage from "./pages/StoresPage";
+import StorePage from "./pages/StorePage";
 import InventoryPage from "./pages/InventoryPage";
 import "./App.css";
 
@@ -16,6 +18,7 @@ function App() {
         <span className="nav-brand">🛒 Groceries</span>
         <NavLink to="/" end>Sessions</NavLink>
         <NavLink to="/templates">Templates</NavLink>
+        <NavLink to="/stores">Stores</NavLink>
         <NavLink to="/inventory">Inventory</NavLink>
       </nav>
       <main className="main">
@@ -24,6 +27,8 @@ function App() {
           <Route path="/sessions/:id" element={<SessionPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/:id" element={<TemplatePage />} />
+          <Route path="/stores" element={<StoresPage />} />
+          <Route path="/stores/:id" element={<StorePage />} />
           <Route path="/inventory" element={<InventoryPage />} />
         </Routes>
       </main>

@@ -31,16 +31,39 @@ export interface SessionItem {
   position: number;
   checked: boolean;
   in_cart: boolean;
+  store_section_id: number | null;
+  section_overridden: boolean;
 }
 
 export interface ShoppingSession {
   id: number;
   template_list_id: number | null;
+  store_id: number | null;
   name: string;
   date: string;
   completed: boolean;
   created_at: string;
   items: SessionItem[];
+}
+
+export interface SectionKeyword {
+  id: number;
+  section_id: number;
+  keyword: string;
+}
+
+export interface StoreSection {
+  id: number;
+  store_id: number;
+  name: string;
+  position: number;
+  keywords: SectionKeyword[];
+}
+
+export interface Store {
+  id: number;
+  name: string;
+  sections: StoreSection[];
 }
 
 export interface InventoryCheck {
@@ -70,9 +93,9 @@ export const deleteTemplateItem = (templateId: number, itemId: number) =>
 // Sessions
 export const getSessions = () => api.get<ShoppingSession[]>("/sessions/").then((r) => r.data);
 export const getSession = (id: number) => api.get<ShoppingSession>(`/sessions/${id}`).then((r) => r.data);
-export const createSession = (data: { name: string; template_list_id?: number }) =>
+export const createSession = (data: { name: string; template_list_id?: number; store_id?: number }) =>
   api.post<ShoppingSession>("/sessions/", data).then((r) => r.data);
-export const updateSession = (id: number, data: { name?: string; completed?: boolean }) =>
+export const updateSession = (id: number, data: { name?: string; completed?: boolean; store_id?: number | null }) =>
   api.patch<ShoppingSession>(`/sessions/${id}`, data).then((r) => r.data);
 export const deleteSession = (id: number) => api.delete(`/sessions/${id}`);
 export const addSessionItem = (sessionId: number, data: { name: string; category?: string }) =>
@@ -81,6 +104,24 @@ export const updateSessionItem = (sessionId: number, itemId: number, data: Parti
   api.patch<SessionItem>(`/sessions/${sessionId}/items/${itemId}`, data).then((r) => r.data);
 export const deleteSessionItem = (sessionId: number, itemId: number) =>
   api.delete(`/sessions/${sessionId}/items/${itemId}`);
+
+// Stores
+export const getStores = () => api.get<Store[]>("/stores/").then((r) => r.data);
+export const getStore = (id: number) => api.get<Store>(`/stores/${id}`).then((r) => r.data);
+export const createStore = (data: { name: string }) => api.post<Store>("/stores/", data).then((r) => r.data);
+export const updateStore = (id: number, data: { name?: string }) =>
+  api.patch<Store>(`/stores/${id}`, data).then((r) => r.data);
+export const deleteStore = (id: number) => api.delete(`/stores/${id}`);
+export const addStoreSection = (storeId: number, data: { name: string; position?: number }) =>
+  api.post<StoreSection>(`/stores/${storeId}/sections`, data).then((r) => r.data);
+export const updateStoreSection = (storeId: number, sectionId: number, data: { name?: string; position?: number }) =>
+  api.patch<StoreSection>(`/stores/${storeId}/sections/${sectionId}`, data).then((r) => r.data);
+export const deleteStoreSection = (storeId: number, sectionId: number) =>
+  api.delete(`/stores/${storeId}/sections/${sectionId}`);
+export const addSectionKeyword = (storeId: number, sectionId: number, keyword: string) =>
+  api.post<SectionKeyword>(`/stores/${storeId}/sections/${sectionId}/keywords`, { keyword }).then((r) => r.data);
+export const deleteSectionKeyword = (storeId: number, sectionId: number, keywordId: number) =>
+  api.delete(`/stores/${storeId}/sections/${sectionId}/keywords/${keywordId}`);
 
 // Inventory
 export const getInventory = (sessionId?: number) =>

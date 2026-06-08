@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import Base, engine
-from routers import inventory, sessions, templates
+from routers import inventory, sessions, stores, templates
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,6 +22,7 @@ app.add_middleware(
 
 app.include_router(templates.router)
 app.include_router(sessions.router)
+app.include_router(stores.router)
 app.include_router(inventory.router)
 
 
