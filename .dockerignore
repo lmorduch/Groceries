@@ -1,0 +1,6 @@
+.npmrc
+frontend/node_modules
+frontend/.env*
+backend/__pycache__
+backend/*.pyc
+backend/.env
