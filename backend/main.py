@@ -1,9 +1,13 @@
 # ABOUTME: FastAPI application entry point
 # ABOUTME: Mounts all routers and creates DB tables on startup
 
+import os
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 import models
@@ -62,7 +66,7 @@ async def auth_callback(code: str, db: Session = Depends(get_db)):
         value=make_jwt(user.id),
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=os.getenv("BACKEND_URL", "").startswith("https"),
         max_age=30 * 24 * 60 * 60,
     )
     return redirect
@@ -86,3 +90,15 @@ def auth_logout(response: Response):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── Serve frontend (production) ───────────────────────────────────────────────
+
+_FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+if _FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIST / "assets")), name="spa-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        return FileResponse(str(_FRONTEND_DIST / "index.html"))

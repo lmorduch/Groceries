@@ -13,10 +13,10 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 _backend = os.getenv("BACKEND_URL", "http://localhost:8000")
-_frontend = os.getenv("FRONTEND_URL", "http://localhost:5173")
+# In production frontend is served by the same server, so default to "/"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "/")
 
 REDIRECT_URI = f"{_backend}/auth/callback"
-FRONTEND_URL = _frontend
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM = "HS256"
