@@ -3,9 +3,10 @@
 
 # ── Stage 1: Build frontend ────────────────────────────────────────────────
 FROM node:20-slim AS frontend
+ENV NODE_ENV=development
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN NODE_ENV=development npm install
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
