@@ -9,7 +9,6 @@ import {
   deleteTemplateItem,
   getTemplate,
   updateTemplate,
-  updateTemplateItem,
 } from "../api";
 
 export default function TemplatePage() {
@@ -42,11 +41,6 @@ export default function TemplatePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["template", templateId] }),
   });
 
-  const updateItemMut = useMutation({
-    mutationFn: ({ itemId, data }: { itemId: number; data: { name?: string; category?: string } }) =>
-      updateTemplateItem(templateId, itemId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["template", templateId] }),
-  });
 
   if (isLoading || !template) return <p>Loading…</p>;
 

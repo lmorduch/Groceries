@@ -7,7 +7,6 @@ import { useParams } from "react-router-dom";
 import {
   addSectionKeyword,
   addStoreSection,
-  deleteStore,
   deleteSectionKeyword,
   deleteStoreSection,
   getStore,
