@@ -10,8 +10,10 @@ export interface User {
   picture: string | null;
 }
 
+// In production the frontend is served by the backend (same origin), so use "".
+// In local dev set VITE_API_URL=http://localhost:8000 in .env.local.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL ?? "",
 });
 
 export interface TemplateItem {
