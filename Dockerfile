@@ -5,7 +5,7 @@
 FROM node:20-slim AS frontend
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install --include=dev
+RUN NODE_ENV=development npm install
 COPY frontend/ ./
 RUN npm run build
 
