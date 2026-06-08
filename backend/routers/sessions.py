@@ -1,15 +1,23 @@
 # ABOUTME: Routes for shopping sessions - spawning from templates and tracking item state
-# ABOUTME: Auto-sorts items into store sections on creation and when items are added
+# ABOUTME: Auto-sorts items into store sections on creation and when items are added, scoped per user
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import models
 import schemas
+from auth import get_current_user
 from database import get_db
 from sorting import auto_sort_items
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+def _get_session_or_404(session_id: int, user_id: int, db: Session) -> models.ShoppingSession:
+    s = db.get(models.ShoppingSession, session_id)
+    if not s or s.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return s
 
 
 def _get_sections(store_id: int | None, db: Session) -> list[models.StoreSection]:
@@ -20,17 +28,34 @@ def _get_sections(store_id: int | None, db: Session) -> list[models.StoreSection
 
 
 @router.get("/", response_model=list[schemas.ShoppingSession])
-def list_sessions(db: Session = Depends(get_db)):
-    return db.query(models.ShoppingSession).order_by(models.ShoppingSession.date.desc()).all()
+def list_sessions(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return (
+        db.query(models.ShoppingSession)
+        .filter_by(user_id=current_user["user_id"])
+        .order_by(models.ShoppingSession.date.desc())
+        .all()
+    )
 
 
 @router.post("/", response_model=schemas.ShoppingSession, status_code=201)
-def create_session(body: schemas.ShoppingSessionCreate, db: Session = Depends(get_db)):
-    if body.store_id and not db.get(models.Store, body.store_id):
-        raise HTTPException(status_code=404, detail="Store not found")
+def create_session(
+    body: schemas.ShoppingSessionCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["user_id"]
+
+    if body.store_id:
+        store = db.get(models.Store, body.store_id)
+        if not store or store.user_id != uid:
+            raise HTTPException(status_code=404, detail="Store not found")
 
     session = models.ShoppingSession(
         name=body.name,
+        user_id=uid,
         template_list_id=body.template_list_id,
         store_id=body.store_id,
     )
@@ -39,7 +64,7 @@ def create_session(body: schemas.ShoppingSessionCreate, db: Session = Depends(ge
 
     if body.template_list_id:
         template = db.get(models.TemplateList, body.template_list_id)
-        if not template:
+        if not template or template.user_id != uid:
             raise HTTPException(status_code=404, detail="Template not found")
         for item in template.items:
             db.add(models.SessionItem(
@@ -50,7 +75,6 @@ def create_session(body: schemas.ShoppingSessionCreate, db: Session = Depends(ge
             ))
         db.flush()
 
-    # Auto-sort all items into sections
     db.refresh(session)
     sections = _get_sections(body.store_id, db)
     if sections:
@@ -62,25 +86,27 @@ def create_session(body: schemas.ShoppingSessionCreate, db: Session = Depends(ge
 
 
 @router.get("/{session_id}", response_model=schemas.ShoppingSession)
-def get_session(session_id: int, db: Session = Depends(get_db)):
-    session = db.get(models.ShoppingSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
+def get_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return _get_session_or_404(session_id, current_user["user_id"], db)
 
 
 @router.patch("/{session_id}", response_model=schemas.ShoppingSession)
-def update_session(session_id: int, body: schemas.ShoppingSessionUpdate, db: Session = Depends(get_db)):
-    session = db.get(models.ShoppingSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+def update_session(
+    session_id: int,
+    body: schemas.ShoppingSessionUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    session = _get_session_or_404(session_id, current_user["user_id"], db)
 
     store_changing = "store_id" in body.model_dump(exclude_unset=True) and body.store_id != session.store_id
-
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(session, field, value)
 
-    # Re-sort all non-overridden items when the store changes
     if store_changing:
         db.flush()
         sections = _get_sections(session.store_id, db)
@@ -92,25 +118,28 @@ def update_session(session_id: int, body: schemas.ShoppingSessionUpdate, db: Ses
 
 
 @router.delete("/{session_id}", status_code=204)
-def delete_session(session_id: int, db: Session = Depends(get_db)):
-    session = db.get(models.ShoppingSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+def delete_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    session = _get_session_or_404(session_id, current_user["user_id"], db)
     db.delete(session)
     db.commit()
 
 
 @router.post("/{session_id}/items", response_model=schemas.SessionItem, status_code=201)
-def add_session_item(session_id: int, body: schemas.SessionItemCreate, db: Session = Depends(get_db)):
-    session = db.get(models.ShoppingSession, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
+def add_session_item(
+    session_id: int,
+    body: schemas.SessionItemCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    session = _get_session_or_404(session_id, current_user["user_id"], db)
     item = models.SessionItem(session_id=session_id, **body.model_dump())
     db.add(item)
     db.flush()
 
-    # Auto-sort the new item if the session has a store
     sections = _get_sections(session.store_id, db)
     if sections:
         auto_sort_items([item], sections, skip_overridden=False)
@@ -121,14 +150,19 @@ def add_session_item(session_id: int, body: schemas.SessionItemCreate, db: Sessi
 
 
 @router.patch("/{session_id}/items/{item_id}", response_model=schemas.SessionItem)
-def update_session_item(session_id: int, item_id: int, body: schemas.SessionItemUpdate, db: Session = Depends(get_db)):
+def update_session_item(
+    session_id: int,
+    item_id: int,
+    body: schemas.SessionItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    _get_session_or_404(session_id, current_user["user_id"], db)
     item = db.get(models.SessionItem, item_id)
     if not item or item.session_id != session_id:
         raise HTTPException(status_code=404, detail="Item not found")
 
     updates = body.model_dump(exclude_unset=True)
-
-    # If the caller is explicitly setting a section, mark it as overridden
     if "store_section_id" in updates and "section_overridden" not in updates:
         updates["section_overridden"] = True
 
@@ -141,7 +175,13 @@ def update_session_item(session_id: int, item_id: int, body: schemas.SessionItem
 
 
 @router.delete("/{session_id}/items/{item_id}", status_code=204)
-def delete_session_item(session_id: int, item_id: int, db: Session = Depends(get_db)):
+def delete_session_item(
+    session_id: int,
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    _get_session_or_404(session_id, current_user["user_id"], db)
     item = db.get(models.SessionItem, item_id)
     if not item or item.session_id != session_id:
         raise HTTPException(status_code=404, detail="Item not found")

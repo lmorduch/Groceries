@@ -3,6 +3,13 @@
 
 import axios from "axios";
 
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  picture: string | null;
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
 });
@@ -74,6 +81,10 @@ export interface InventoryCheck {
   notes: string | null;
   created_at: string;
 }
+
+// Auth
+export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
+export const logout = () => api.post("/auth/logout");
 
 // Templates
 export const getTemplates = () => api.get<TemplateList[]>("/templates/").then((r) => r.data);

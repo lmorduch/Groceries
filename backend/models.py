@@ -9,11 +9,28 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    google_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    picture: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    template_lists: Mapped[list["TemplateList"]] = relationship("TemplateList", back_populates="user")
+    stores: Mapped[list["Store"]] = relationship("Store", back_populates="user")
+    sessions: Mapped[list["ShoppingSession"]] = relationship("ShoppingSession", back_populates="user")
+    inventory_checks: Mapped[list["InventoryCheck"]] = relationship("InventoryCheck", back_populates="user")
+
+
 class Store(Base):
     __tablename__ = "stores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    user: Mapped["User"] = relationship("User", back_populates="stores")
 
     sections: Mapped[list["StoreSection"]] = relationship(
         "StoreSection", back_populates="store", cascade="all, delete-orphan",
@@ -51,7 +68,9 @@ class TemplateList(Base):
     __tablename__ = "template_lists"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    user: Mapped["User"] = relationship("User", back_populates="template_lists")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -75,9 +94,11 @@ class ShoppingSession(Base):
     __tablename__ = "shopping_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     template_list_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("template_lists.id"), nullable=True)
     store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    user: Mapped["User"] = relationship("User", back_populates="sessions")
     date: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -108,8 +129,10 @@ class InventoryCheck(Base):
     __tablename__ = "inventory_checks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     session_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("shopping_sessions.id"), nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    user: Mapped["User"] = relationship("User", back_populates="inventory_checks")
     have_it: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
