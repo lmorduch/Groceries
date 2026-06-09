@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import Depends, FastAPI, Response
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -82,7 +83,39 @@ def auth_me(current_user: dict = Depends(get_current_user), db: Session = Depend
     if not user:
         from fastapi import HTTPException
         raise HTTPException(404, "User not found")
-    return {"id": user.id, "email": user.email, "name": user.name, "picture": user.picture}
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "picture": user.picture,
+        "has_anthropic_key": user.anthropic_api_key is not None,
+    }
+
+
+class _MeUpdate(BaseModel):
+    anthropic_api_key: str | None = None
+
+
+@app.put("/auth/me")
+def update_me(
+    body: _MeUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user = db.get(models.User, current_user["user_id"])
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(404, "User not found")
+    if "anthropic_api_key" in body.model_fields_set:
+        user.anthropic_api_key = body.anthropic_api_key
+        db.commit()
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "picture": user.picture,
+        "has_anthropic_key": user.anthropic_api_key is not None,
+    }
 
 
 @app.post("/auth/logout")

@@ -11,6 +11,7 @@ import SessionPage from "./pages/SessionPage";
 import StoresPage from "./pages/StoresPage";
 import StorePage from "./pages/StorePage";
 import InventoryPage from "./pages/InventoryPage";
+import SettingsPage from "./pages/SettingsPage";
 import "./App.css";
 
 function UserAvatar({ user }: { user: User }) {
@@ -66,6 +67,7 @@ export default function App() {
         <NavLink to="/templates">Templates</NavLink>
         <NavLink to="/stores">Stores</NavLink>
         <NavLink to="/inventory">Inventory</NavLink>
+        <NavLink to="/settings">Settings</NavLink>
         <button className="nav-user" onClick={handleLogout} title="Sign out">
           <UserAvatar user={user} />
         </button>
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/stores/:id" element={<StorePage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
     </div>

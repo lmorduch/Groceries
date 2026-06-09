@@ -66,13 +66,18 @@ def update_inventory_check(
 @router.post("/analyze-photo", response_model=list[str])
 async def analyze_photo(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    user = db.get(models.User, current_user["user_id"])
+    if not user or not user.anthropic_api_key:
+        raise HTTPException(status_code=402, detail="Anthropic API key not set. Add it in Settings.")
+
     image_data = await file.read()
     b64 = base64.standard_b64encode(image_data).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key=user.anthropic_api_key)
     response = client.messages.create(
         model="claude-opus-4-8",
         max_tokens=1024,
