@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 import models
 from auth import COOKIE_NAME, FRONTEND_URL, exchange_code, get_current_user, login_url, make_jwt
 from database import Base, engine, get_db
-from routers import inventory, sessions, stores, templates
+from routers import inventory, sessions, shares, stores, templates
 
 Base.metadata.create_all(bind=engine)
 
@@ -34,6 +34,7 @@ app.include_router(templates.router)
 app.include_router(sessions.router)
 app.include_router(stores.router)
 app.include_router(inventory.router)
+app.include_router(shares.router)
 
 
 # ── Auth routes ──────────────────────────────────────────────────────────────

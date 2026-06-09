@@ -12,11 +12,28 @@ from database import get_db
 router = APIRouter(prefix="/templates", tags=["templates"])
 
 
-def _get_template_or_404(template_id: int, user_id: int, db: Session) -> models.TemplateList:
+def _user_email(user_id: int, db: Session) -> str:
+    user = db.get(models.User, user_id)
+    return user.email.lower() if user else ""
+
+
+def _has_share(resource_type: str, resource_id: int, email: str, db: Session) -> bool:
+    return db.query(models.Share).filter_by(
+        resource_type=resource_type, resource_id=resource_id, shared_with_email=email
+    ).first() is not None
+
+
+def _get_template_or_404(
+    template_id: int, user_id: int, db: Session, owner_only: bool = False
+) -> models.TemplateList:
     t = db.get(models.TemplateList, template_id)
-    if not t or t.user_id != user_id:
+    if not t:
         raise HTTPException(status_code=404, detail="Template not found")
-    return t
+    if t.user_id == user_id:
+        return t
+    if not owner_only and _has_share("template", template_id, _user_email(user_id, db), db):
+        return t
+    raise HTTPException(status_code=404, detail="Template not found")
 
 
 @router.get("/", response_model=list[schemas.TemplateList])
@@ -24,9 +41,16 @@ def list_templates(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    uid = current_user["user_id"]
+    email = _user_email(uid, db)
+    shared_ids = [
+        r.resource_id for r in
+        db.query(models.Share).filter_by(resource_type="template", shared_with_email=email).all()
+    ]
+    from sqlalchemy import or_
     return (
         db.query(models.TemplateList)
-        .filter_by(user_id=current_user["user_id"])
+        .filter(or_(models.TemplateList.user_id == uid, models.TemplateList.id.in_(shared_ids)))
         .order_by(models.TemplateList.name)
         .all()
     )
@@ -83,7 +107,7 @@ def delete_template(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    template = _get_template_or_404(template_id, current_user["user_id"], db)
+    template = _get_template_or_404(template_id, current_user["user_id"], db, owner_only=True)
     db.delete(template)
     db.commit()
 

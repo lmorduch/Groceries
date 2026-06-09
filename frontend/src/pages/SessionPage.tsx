@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   addSessionItem,
   deleteSessionItem,
+  getMe,
   getSession,
   getStore,
   updateSession,
@@ -14,6 +15,7 @@ import {
   type SessionItem,
   type StoreSection,
 } from "../api";
+import SharePanel from "../components/SharePanel";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,10 +23,12 @@ export default function SessionPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ["session", sessionId],
     queryFn: () => getSession(sessionId),
   });
+  const [showShare, setShowShare] = useState(false);
 
   const { data: store } = useQuery({
     queryKey: ["store", session?.store_id],
@@ -80,7 +84,13 @@ export default function SessionPage() {
         {!session.completed && (
           <button className="btn-primary" onClick={() => completeMut.mutate()}>Mark Complete</button>
         )}
+        {me && session.owner_user_id === me.id && (
+          <button className="btn-sm share-toggle" onClick={() => setShowShare((v) => !v)}>
+            👥 Share
+          </button>
+        )}
       </div>
+      {showShare && <SharePanel resourceType="session" resourceId={sessionId} />}
 
       {!session.completed && (
         <form className="add-form" onSubmit={(e) => { e.preventDefault(); if (newItem.trim()) addItemMut.mutate(); }}>

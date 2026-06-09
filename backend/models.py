@@ -125,6 +125,17 @@ class SessionItem(Base):
     store_section: Mapped["StoreSection | None"] = relationship("StoreSection", back_populates="session_items")
 
 
+class Share(Base):
+    __tablename__ = "shares"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # "template", "session", or "store"
+    resource_type: Mapped[str] = mapped_column(String, nullable=False)
+    resource_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    owner_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    shared_with_email: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class InventoryCheck(Base):
     __tablename__ = "inventory_checks"
 

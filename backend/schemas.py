@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # --- Stores ---
@@ -51,10 +51,11 @@ class StoreUpdate(BaseModel):
 
 class Store(BaseModel):
     id: int
+    owner_user_id: int = Field(alias="user_id")
     name: str
     sections: list[StoreSection] = []
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 # --- Template Items ---
@@ -94,12 +95,13 @@ class TemplateListUpdate(BaseModel):
 
 class TemplateList(BaseModel):
     id: int
+    owner_user_id: int = Field(alias="user_id")
     name: str
     created_at: datetime
     updated_at: datetime
     items: list[TemplateItem] = []
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 # --- Session Items ---
@@ -149,6 +151,7 @@ class ShoppingSessionUpdate(BaseModel):
 
 class ShoppingSession(BaseModel):
     id: int
+    owner_user_id: int = Field(alias="user_id")
     template_list_id: int | None
     store_id: int | None
     name: str
@@ -156,6 +159,23 @@ class ShoppingSession(BaseModel):
     completed: bool
     created_at: datetime
     items: list[SessionItem] = []
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+# --- Shares ---
+
+class ShareCreate(BaseModel):
+    resource_type: str
+    resource_id: int
+    email: str
+
+
+class Share(BaseModel):
+    id: int
+    resource_type: str
+    resource_id: int
+    shared_with_email: str
 
     model_config = {"from_attributes": True}
 

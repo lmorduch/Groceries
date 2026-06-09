@@ -9,23 +9,27 @@ import {
   addStoreSection,
   deleteSectionKeyword,
   deleteStoreSection,
+  getMe,
   getStore,
   updateStore,
   updateStoreSection,
   type StoreSection,
 } from "../api";
+import SharePanel from "../components/SharePanel";
 
 export default function StorePage() {
   const { id } = useParams<{ id: string }>();
   const storeId = Number(id);
   const qc = useQueryClient();
 
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const { data: store, isLoading } = useQuery({
     queryKey: ["store", storeId],
     queryFn: () => getStore(storeId),
   });
 
   const [editingName, setEditingName] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [storeName, setStoreName] = useState("");
   const [newSection, setNewSection] = useState("");
   const [keywordInputs, setKeywordInputs] = useState<Record<number, string>>({});
@@ -95,7 +99,13 @@ export default function StorePage() {
             {store.name} <span className="edit-hint">✏️</span>
           </h1>
         )}
+        {me && store.owner_user_id === me.id && (
+          <button className="btn-sm share-toggle" onClick={() => setShowShare((v) => !v)}>
+            👥 Share
+          </button>
+        )}
       </div>
+      {showShare && <SharePanel resourceType="store" resourceId={storeId} />}
 
       <p className="hint">
         Sections appear in the order below during shopping. Keywords (case-insensitive) are matched against item names and categories to auto-assign items.

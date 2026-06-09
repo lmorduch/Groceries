@@ -12,11 +12,28 @@ from database import get_db
 router = APIRouter(prefix="/stores", tags=["stores"])
 
 
-def _get_store_or_404(store_id: int, user_id: int, db: Session) -> models.Store:
+def _user_email(user_id: int, db: Session) -> str:
+    user = db.get(models.User, user_id)
+    return user.email.lower() if user else ""
+
+
+def _has_share(resource_type: str, resource_id: int, email: str, db: Session) -> bool:
+    return db.query(models.Share).filter_by(
+        resource_type=resource_type, resource_id=resource_id, shared_with_email=email
+    ).first() is not None
+
+
+def _get_store_or_404(
+    store_id: int, user_id: int, db: Session, owner_only: bool = False
+) -> models.Store:
     store = db.get(models.Store, store_id)
-    if not store or store.user_id != user_id:
+    if not store:
         raise HTTPException(status_code=404, detail="Store not found")
-    return store
+    if store.user_id == user_id:
+        return store
+    if not owner_only and _has_share("store", store_id, _user_email(user_id, db), db):
+        return store
+    raise HTTPException(status_code=404, detail="Store not found")
 
 
 def _get_section_or_404(store: models.Store, section_id: int) -> models.StoreSection:
@@ -31,7 +48,19 @@ def list_stores(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    return db.query(models.Store).filter_by(user_id=current_user["user_id"]).order_by(models.Store.name).all()
+    uid = current_user["user_id"]
+    email = _user_email(uid, db)
+    shared_ids = [
+        r.resource_id for r in
+        db.query(models.Share).filter_by(resource_type="store", shared_with_email=email).all()
+    ]
+    from sqlalchemy import or_
+    return (
+        db.query(models.Store)
+        .filter(or_(models.Store.user_id == uid, models.Store.id.in_(shared_ids)))
+        .order_by(models.Store.name)
+        .all()
+    )
 
 
 @router.post("/", response_model=schemas.Store, status_code=201)
@@ -77,7 +106,7 @@ def delete_store(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    store = _get_store_or_404(store_id, current_user["user_id"], db)
+    store = _get_store_or_404(store_id, current_user["user_id"], db, owner_only=True)
     db.delete(store)
     db.commit()
 

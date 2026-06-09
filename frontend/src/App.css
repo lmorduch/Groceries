@@ -150,3 +150,14 @@ button.sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 
 /* Loading */
 .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--muted); font-size: 1rem; }
+
+/* Share panel */
+.share-toggle { margin-left: auto; }
+.share-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; }
+.share-heading { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
+.share-empty { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.6rem; }
+.share-list { list-style: none; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.share-row { display: flex; align-items: center; gap: 0.5rem; }
+.share-email { flex: 1; font-size: 0.9rem; }
+.share-form { margin-bottom: 0; }
+.share-error { color: var(--danger); font-size: 0.85rem; margin-top: 0.4rem; }

@@ -7,21 +7,25 @@ import { useParams } from "react-router-dom";
 import {
   addTemplateItem,
   deleteTemplateItem,
+  getMe,
   getTemplate,
   updateTemplate,
 } from "../api";
+import SharePanel from "../components/SharePanel";
 
 export default function TemplatePage() {
   const { id } = useParams<{ id: string }>();
   const templateId = Number(id);
   const qc = useQueryClient();
 
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const { data: template, isLoading } = useQuery({
     queryKey: ["template", templateId],
     queryFn: () => getTemplate(templateId),
   });
 
   const [editingName, setEditingName] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [name, setName] = useState("");
   const [newItem, setNewItem] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -60,7 +64,13 @@ export default function TemplatePage() {
             {template.name} <span className="edit-hint">✏️</span>
           </h1>
         )}
+        {me && template.owner_user_id === me.id && (
+          <button className="btn-sm share-toggle" onClick={() => setShowShare((v) => !v)}>
+            👥 Share
+          </button>
+        )}
       </div>
+      {showShare && <SharePanel resourceType="template" resourceId={templateId} />}
 
       <form className="add-form" onSubmit={(e) => { e.preventDefault(); if (newItem.trim()) addItemMut.mutate(); }}>
         <input value={newItem} onChange={(e) => setNewItem(e.target.value)} placeholder="Item name…" />

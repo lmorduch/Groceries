@@ -13,11 +13,28 @@ from sorting import auto_sort_items
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-def _get_session_or_404(session_id: int, user_id: int, db: Session) -> models.ShoppingSession:
+def _user_email(user_id: int, db: Session) -> str:
+    user = db.get(models.User, user_id)
+    return user.email.lower() if user else ""
+
+
+def _has_share(resource_type: str, resource_id: int, email: str, db: Session) -> bool:
+    return db.query(models.Share).filter_by(
+        resource_type=resource_type, resource_id=resource_id, shared_with_email=email
+    ).first() is not None
+
+
+def _get_session_or_404(
+    session_id: int, user_id: int, db: Session, owner_only: bool = False
+) -> models.ShoppingSession:
     s = db.get(models.ShoppingSession, session_id)
-    if not s or s.user_id != user_id:
+    if not s:
         raise HTTPException(status_code=404, detail="Session not found")
-    return s
+    if s.user_id == user_id:
+        return s
+    if not owner_only and _has_share("session", session_id, _user_email(user_id, db), db):
+        return s
+    raise HTTPException(status_code=404, detail="Session not found")
 
 
 def _get_sections(store_id: int | None, db: Session) -> list[models.StoreSection]:
@@ -32,9 +49,16 @@ def list_sessions(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    uid = current_user["user_id"]
+    email = _user_email(uid, db)
+    shared_ids = [
+        r.resource_id for r in
+        db.query(models.Share).filter_by(resource_type="session", shared_with_email=email).all()
+    ]
+    from sqlalchemy import or_
     return (
         db.query(models.ShoppingSession)
-        .filter_by(user_id=current_user["user_id"])
+        .filter(or_(models.ShoppingSession.user_id == uid, models.ShoppingSession.id.in_(shared_ids)))
         .order_by(models.ShoppingSession.date.desc())
         .all()
     )
@@ -123,7 +147,7 @@ def delete_session(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    session = _get_session_or_404(session_id, current_user["user_id"], db)
+    session = _get_session_or_404(session_id, current_user["user_id"], db, owner_only=True)
     db.delete(session)
     db.commit()
 

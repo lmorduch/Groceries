@@ -24,8 +24,16 @@ export interface TemplateItem {
   position: number;
 }
 
+export interface Share {
+  id: number;
+  resource_type: string;
+  resource_id: number;
+  shared_with_email: string;
+}
+
 export interface TemplateList {
   id: number;
+  owner_user_id: number;
   name: string;
   created_at: string;
   updated_at: string;
@@ -46,6 +54,7 @@ export interface SessionItem {
 
 export interface ShoppingSession {
   id: number;
+  owner_user_id: number;
   template_list_id: number | null;
   store_id: number | null;
   name: string;
@@ -71,6 +80,7 @@ export interface StoreSection {
 
 export interface Store {
   id: number;
+  owner_user_id: number;
   name: string;
   sections: StoreSection[];
 }
@@ -135,6 +145,13 @@ export const addSectionKeyword = (storeId: number, sectionId: number, keyword: s
   api.post<SectionKeyword>(`/stores/${storeId}/sections/${sectionId}/keywords`, { keyword }).then((r) => r.data);
 export const deleteSectionKeyword = (storeId: number, sectionId: number, keywordId: number) =>
   api.delete(`/stores/${storeId}/sections/${sectionId}/keywords/${keywordId}`);
+
+// Shares
+export const getShares = (resourceType: string, resourceId: number) =>
+  api.get<Share[]>("/shares/", { params: { resource_type: resourceType, resource_id: resourceId } }).then((r) => r.data);
+export const createShare = (resourceType: string, resourceId: number, email: string) =>
+  api.post<Share>("/shares/", { resource_type: resourceType, resource_id: resourceId, email }).then((r) => r.data);
+export const deleteShare = (shareId: number) => api.delete(`/shares/${shareId}`);
 
 // Inventory
 export const getInventory = (sessionId?: number) =>
