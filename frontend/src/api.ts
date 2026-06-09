@@ -161,3 +161,12 @@ export const createInventoryCheck = (data: { name: string; session_id?: number; 
 export const updateInventoryCheck = (id: number, data: { have_it?: boolean | null; notes?: string }) =>
   api.patch<InventoryCheck>(`/inventory/${id}`, data).then((r) => r.data);
 export const deleteInventoryCheck = (id: number) => api.delete(`/inventory/${id}`);
+export const analyzePhoto = (file: File): Promise<string[]> => {
+  const form = new FormData();
+  form.append("file", file);
+  return api
+    .post<string[]>("/inventory/analyze-photo", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data);
+};

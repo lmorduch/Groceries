@@ -1,7 +1,11 @@
 # ABOUTME: Routes for pre-shopping inventory checks
 # ABOUTME: Lets you record what you already have at home before creating a session, scoped per user
 
-from fastapi import APIRouter, Depends, HTTPException
+import base64
+import json
+
+import anthropic
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 import models
@@ -57,6 +61,44 @@ def update_inventory_check(
     db.commit()
     db.refresh(check)
     return check
+
+
+@router.post("/analyze-photo", response_model=list[str])
+async def analyze_photo(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    image_data = await file.read()
+    b64 = base64.standard_b64encode(image_data).decode("utf-8")
+    media_type = file.content_type or "image/jpeg"
+
+    client = anthropic.Anthropic()
+    response = client.messages.create(
+        model="claude-opus-4-8",
+        max_tokens=1024,
+        thinking={"type": "adaptive"},
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": media_type, "data": b64},
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "List all food and grocery items visible in this image. "
+                            "Return ONLY a JSON array of item name strings, nothing else. "
+                            'Example: ["milk", "eggs", "bread"]'
+                        ),
+                    },
+                ],
+            }
+        ],
+    )
+    text = next(b.text for b in response.content if b.type == "text")
+    return json.loads(text)
 
 
 @router.delete("/{check_id}", status_code=204)

@@ -2,10 +2,11 @@
 // ABOUTME: Can be seeded from a template and launch a shopping session from "need it" items
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   addSessionItem,
+  analyzePhoto,
   createInventoryCheck,
   createSession,
   deleteInventoryCheck,
@@ -44,6 +45,46 @@ export default function InventoryPage() {
   const [sessionName, setSessionName] = useState(urlName);
   const [sessionStoreId, setSessionStoreId] = useState<number | "">(urlStoreId ?? "");
   const [starting, setStarting] = useState(false);
+
+  // Photo scan state
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const [detectedItems, setDetectedItems] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    setDetectedItems([]);
+    setSelectedItems(new Set());
+    try {
+      const items = await analyzePhoto(file);
+      setDetectedItems(items);
+      setSelectedItems(new Set(items));
+    } finally {
+      setScanning(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }
+
+  async function addSelectedItems() {
+    const existingNames = new Set(checks.map((c) => c.name.toLowerCase()));
+    const toAdd = [...selectedItems].filter((name) => !existingNames.has(name.toLowerCase()));
+    await Promise.all(toAdd.map((name) => createInventoryCheck({ name })));
+    qc.invalidateQueries({ queryKey: ["inventory"] });
+    setDetectedItems([]);
+    setSelectedItems(new Set());
+  }
+
+  function toggleItem(name: string) {
+    setSelectedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
 
   // Auto-seed from template once both template and inventory are loaded
   useEffect(() => {
@@ -112,7 +153,48 @@ export default function InventoryPage() {
         <input value={newItem} onChange={(e) => setNewItem(e.target.value)} placeholder="Item to check…" />
         <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)" />
         <button type="submit" disabled={!newItem.trim()}>Add</button>
+        <button type="button" onClick={() => photoInputRef.current?.click()} disabled={scanning}>
+          {scanning ? "Scanning…" : "📷 Scan"}
+        </button>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={handlePhotoUpload}
+        />
       </form>
+
+      {detectedItems.length > 0 && (
+        <div className="inventory-section">
+          <h2>Detected items — pick what to add</h2>
+          <ul className="item-list">
+            {detectedItems.map((name) => (
+              <li key={name} className="item-row">
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.has(name)}
+                    onChange={() => toggleItem(name)}
+                  />
+                  <span className="item-name">{name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <button
+            className="btn-primary"
+            onClick={addSelectedItems}
+            disabled={selectedItems.size === 0}
+          >
+            Add {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} to pantry check
+          </button>
+          <button className="btn-sm" onClick={() => { setDetectedItems([]); setSelectedItems(new Set()); }} style={{ marginLeft: "0.5rem" }}>
+            Discard
+          </button>
+        </div>
+      )}
 
       {undecided.length > 0 && (
         <div className="inventory-section">
