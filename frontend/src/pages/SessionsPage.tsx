@@ -3,11 +3,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createSession, deleteSession, getSessions, getStores, getTemplates } from "../api";
 
 export default function SessionsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: sessions = [], isLoading } = useQuery({ queryKey: ["sessions"], queryFn: getSessions });
   const { data: templates = [] } = useQuery({ queryKey: ["templates"], queryFn: getTemplates });
   const { data: stores = [] } = useQuery({ queryKey: ["stores"], queryFn: getStores });
@@ -55,6 +56,21 @@ export default function SessionsPage() {
           {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         <button type="submit" disabled={!name.trim()}>Start</button>
+        {templateId !== "" && (
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={!name.trim()}
+            onClick={() => {
+              const params = new URLSearchParams({ template_id: String(templateId) });
+              if (name.trim()) params.set("name", name.trim());
+              if (storeId !== "") params.set("store_id", String(storeId));
+              navigate(`/inventory?${params}`);
+            }}
+          >
+            Check pantry first →
+          </button>
+        )}
       </form>
 
       {active.length > 0 && (

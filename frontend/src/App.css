@@ -161,3 +161,11 @@ button.sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 .share-email { flex: 1; font-size: 0.9rem; }
 .share-form { margin-bottom: 0; }
 .share-error { color: var(--danger); font-size: 0.85rem; margin-top: 0.4rem; }
+
+/* Secondary button */
+.btn-secondary { background: var(--surface); color: var(--primary); border: 1px solid var(--primary); border-radius: var(--radius); padding: 0.4rem 0.9rem; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+.btn-secondary:hover { background: #e8f0fe; }
+
+/* Start shopping panel */
+.start-shopping-panel { margin-top: 1rem; padding: 1rem; background: #f0f7ff; border: 1px solid #b8d4f8; border-radius: var(--radius); }
+.start-shopping-panel h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
