@@ -8,7 +8,7 @@ export interface User {
   email: string;
   name: string;
   picture: string | null;
-  has_anthropic_key: boolean;
+  has_gemini_key: boolean;
 }
 
 // In production the frontend is served by the backend (same origin), so use "".
@@ -98,7 +98,7 @@ export interface InventoryCheck {
 // Auth
 export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
 export const logout = () => api.post("/auth/logout");
-export const updateMe = (data: { anthropic_api_key: string | null }) =>
+export const updateMe = (data: { gemini_api_key: string | null }) =>
   api.put<User>("/auth/me", data).then((r) => r.data);
 
 // Templates

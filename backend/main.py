@@ -9,6 +9,7 @@ load_dotenv()
 
 from fastapi import Depends, FastAPI, Response
 from pydantic import BaseModel
+from crypto import decrypt, encrypt
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +21,12 @@ from database import Base, engine, get_db
 from routers import inventory, sessions, shares, stores, templates
 
 Base.metadata.create_all(bind=engine)
+
+# Add columns introduced after initial deploy (create_all won't alter existing tables)
+with engine.connect() as _conn:
+    from sqlalchemy import text
+    _conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS gemini_api_key VARCHAR"))
+    _conn.commit()
 
 app = FastAPI(title="Grocery Manager")
 
@@ -88,12 +95,12 @@ def auth_me(current_user: dict = Depends(get_current_user), db: Session = Depend
         "email": user.email,
         "name": user.name,
         "picture": user.picture,
-        "has_anthropic_key": user.anthropic_api_key is not None,
+        "has_gemini_key": user.gemini_api_key is not None,
     }
 
 
 class _MeUpdate(BaseModel):
-    anthropic_api_key: str | None = None
+    gemini_api_key: str | None = None
 
 
 @app.put("/auth/me")
@@ -106,15 +113,15 @@ def update_me(
     if not user:
         from fastapi import HTTPException
         raise HTTPException(404, "User not found")
-    if "anthropic_api_key" in body.model_fields_set:
-        user.anthropic_api_key = body.anthropic_api_key
+    if "gemini_api_key" in body.model_fields_set:
+        user.gemini_api_key = encrypt(body.gemini_api_key) if body.gemini_api_key else None
         db.commit()
     return {
         "id": user.id,
         "email": user.email,
         "name": user.name,
         "picture": user.picture,
-        "has_anthropic_key": user.anthropic_api_key is not None,
+        "has_gemini_key": user.gemini_api_key is not None,
     }
 
 

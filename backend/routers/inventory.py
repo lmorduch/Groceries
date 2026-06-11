@@ -4,13 +4,14 @@
 import base64
 import json
 
-import anthropic
+import google.generativeai as genai
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 import models
 import schemas
 from auth import get_current_user
+from crypto import decrypt
 from database import get_db
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
@@ -70,39 +71,26 @@ async def analyze_photo(
     current_user: dict = Depends(get_current_user),
 ):
     user = db.get(models.User, current_user["user_id"])
-    if not user or not user.anthropic_api_key:
-        raise HTTPException(status_code=402, detail="Anthropic API key not set. Add it in Settings.")
+    if not user or not user.gemini_api_key:
+        raise HTTPException(status_code=402, detail="Gemini API key not set. Add it in Settings.")
 
     image_data = await file.read()
-    b64 = base64.standard_b64encode(image_data).decode("utf-8")
     media_type = file.content_type or "image/jpeg"
 
-    client = anthropic.Anthropic(api_key=user.anthropic_api_key)
-    response = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=1024,
-        thinking={"type": "adaptive"},
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {"type": "base64", "media_type": media_type, "data": b64},
-                    },
-                    {
-                        "type": "text",
-                        "text": (
-                            "List all food and grocery items visible in this image. "
-                            "Return ONLY a JSON array of item name strings, nothing else. "
-                            'Example: ["milk", "eggs", "bread"]'
-                        ),
-                    },
-                ],
-            }
-        ],
-    )
-    text = next(b.text for b in response.content if b.type == "text")
+    api_key = decrypt(user.gemini_api_key)
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    response = model.generate_content([
+        {"mime_type": media_type, "data": base64.b64encode(image_data).decode()},
+        (
+            "List all food and grocery items visible in this image. "
+            "Return ONLY a JSON array of item name strings, nothing else. "
+            'Example: ["milk", "eggs", "bread"]'
+        ),
+    ])
+    text = response.text
+    # Strip markdown code fences if the model wraps the JSON
+    text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(text)
 
 

@@ -17,7 +17,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     picture: Mapped[str | None] = mapped_column(String, nullable=True)
-    anthropic_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    gemini_api_key: Mapped[str | None] = mapped_column(String, nullable=True)
 
     template_lists: Mapped[list["TemplateList"]] = relationship("TemplateList", back_populates="user")
     stores: Mapped[list["Store"]] = relationship("Store", back_populates="user")

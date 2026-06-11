@@ -1,5 +1,5 @@
-// ABOUTME: User settings page — currently manages the Anthropic API key for photo scanning
-// ABOUTME: Key is stored server-side per user; only whether a key is set is exposed to the UI
+// ABOUTME: User settings page — manages the Gemini API key used for photo scanning
+// ABOUTME: Key is stored encrypted server-side; only whether a key is set is exposed to the UI
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [showInput, setShowInput] = useState(false);
 
   const saveMut = useMutation({
-    mutationFn: (key: string | null) => updateMe({ anthropic_api_key: key }),
+    mutationFn: (key: string | null) => updateMe({ gemini_api_key: key }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["me"] });
       setKeyInput("");
@@ -31,13 +31,16 @@ export default function SettingsPage() {
       <h1>Settings</h1>
 
       <section>
-        <h2>Anthropic API key</h2>
+        <h2>Gemini API key</h2>
         <p className="hint">
-          Used for the 📷 Scan feature on the Pantry Check page. Your key is stored on the server
-          and never returned to the browser.
+          Used for the 📷 Scan feature on the Pantry Check page. Your key is stored encrypted
+          on the server and never returned to the browser.{" "}
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+            Get a key →
+          </a>
         </p>
 
-        {me?.has_anthropic_key ? (
+        {me?.has_gemini_key ? (
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <span>✅ Key saved</span>
             <button className="btn-sm" onClick={() => setShowInput((v) => !v)}>
@@ -55,13 +58,13 @@ export default function SettingsPage() {
           <p>No key set.</p>
         )}
 
-        {(!me?.has_anthropic_key || showInput) && (
+        {(!me?.has_gemini_key || showInput) && (
           <form className="add-form" onSubmit={handleSave} style={{ marginTop: "0.75rem" }}>
             <input
               type="password"
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="sk-ant-…"
+              placeholder="AIza…"
               style={{ flex: 1 }}
             />
             <button type="submit" disabled={!keyInput.trim() || saveMut.isPending}>
